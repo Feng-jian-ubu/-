@@ -2,36 +2,23 @@ import pandas as pd
 import statsmodels.formula.api as smf
 import numpy as np
 
-# =============================
-# 1. 文件路径
-# =============================
+control_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\控制变量.xlsx"
+resilience_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\城市生态韧性\熵权法_城市生态韧性.xlsx"
+policy_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\DID.xlsx"
 
-control_path = r"D:\统计建模\数据集\控制变量.xlsx"
-resilience_path = r"D:\统计建模\数据集\熵权法_城市生态韧性.xlsx"
-policy_path = r"D:\统计建模\数据集\DID.xlsx"
-
-# =============================
-# 2. 读取数据
-# =============================
 
 control = pd.read_excel(control_path)
 resilience = pd.read_excel(resilience_path)
 policy = pd.read_excel(policy_path)
 
-# =============================
-# 3. 合并数据
-# =============================
 
 resilience.rename(columns={"City": "城市", "Year": "年份"}, inplace=True)
 
 df = control.merge(resilience, on=["城市", "年份"]) \
             .merge(policy, on=["城市", "年份"])
 
-df.rename(columns={"Treat×Time": "Treat_Time"}, inplace=True)
+df.rename(columns={"DID": "Treat_Time"}, inplace=True)
 
-# =============================
-# 4. 变量设定
-# =============================
 
 y = "Eco_Resilience"
 
@@ -47,9 +34,6 @@ controls = [
 
 all_vars = [y, did_var] + controls
 
-# =============================
-# 变量中文解释
-# =============================
 
 var_label = {
     "Eco_Resilience": "生态韧性",
@@ -60,8 +44,6 @@ var_label = {
     "城镇化率": "非农业人口/户籍人口",
     "医疗卫生水平": "每百人医院、卫生院床位"
 }
-# 三、DID基准回归
-# =========================================================
 
 formula1 = f"{y} ~ {did_var} + C(城市) + C(年份)"
 
@@ -91,10 +73,6 @@ results4 = smf.ols(formula2, data=df).fit(
 models = [results1, results2, results3, results4]
 
 
-# =========================================================
-# 显著性星号函数
-# =========================================================
-
 def star(p):
     if p < 0.01:
         return "***"
@@ -104,10 +82,6 @@ def star(p):
         return "*"
     return ""
 
-
-# =========================================================
-# 生成回归表
-# =========================================================
 
 variables = [
     did_var,
@@ -145,7 +119,6 @@ for var in variables:
         )
 
 
-# 添加固定效应说明
 
 table["变量"].extend([
     "城市固定效应",
