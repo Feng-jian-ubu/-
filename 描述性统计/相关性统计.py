@@ -2,36 +2,24 @@ import pandas as pd
 import statsmodels.formula.api as smf
 import numpy as np
 
-# =============================
-# 1. 文件路径
-# =============================
 
-control_path = r"D:\统计建模\数据集\控制变量.xlsx"
-resilience_path = r"D:\统计建模\数据集\熵权法_城市生态韧性.xlsx"
-policy_path = r"D:\统计建模\数据集\DID.xlsx"
+control_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\控制变量.xlsx"
+resilience_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\城市生态韧性\熵权法_城市生态韧性.xlsx"
+policy_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\DID.xlsx"
 
-# =============================
-# 2. 读取数据
-# =============================
 
 control = pd.read_excel(control_path)
 resilience = pd.read_excel(resilience_path)
 policy = pd.read_excel(policy_path)
 
-# =============================
-# 3. 合并数据
-# =============================
 
 resilience.rename(columns={"City": "城市", "Year": "年份"}, inplace=True)
 
 df = control.merge(resilience, on=["城市", "年份"]) \
             .merge(policy, on=["城市", "年份"])
 
-df.rename(columns={"Treat×Time": "Treat_Time"}, inplace=True)
+df.rename(columns={"DID": "Treat_Time"}, inplace=True)
 
-# =============================
-# 4. 变量设定
-# =============================
 
 y = "Eco_Resilience"
 
@@ -47,9 +35,6 @@ controls = [
 
 all_vars = [y, did_var] + controls
 
-# =============================
-# 变量中文解释
-# =============================
 
 var_label = {
     "Eco_Resilience": "生态韧性",
@@ -61,9 +46,6 @@ var_label = {
     "医疗卫生水平": "每百人医院、卫生院床位"
 }
 
-# =========================================================
-# 相关性矩阵
-# =========================================================
 
 corr = df[all_vars].corr().round(4)
 
