@@ -2,40 +2,28 @@ import pandas as pd
 import statsmodels.formula.api as smf
 import numpy as np
 
-# =============================
-# 1. 文件路径
-# =============================
 
-control_path = r"D:\统计建模\数据集\控制变量.xlsx"
-resilience_path = r"D:\统计建模\数据集\熵权法_城市生态韧性.xlsx"
-policy_path = r"D:\统计建模\数据集\DID.xlsx"
+control_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\控制变量.xlsx"
+resilience_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\城市生态韧性\熵权法_城市生态韧性.xlsx"
+policy_path = r"D:\苦命大学生的portrait\课程之外\统计建模大赛\TJJM20260418190871\数据及其他-TJJM20260418190871\DID.xlsx"
 
-# =============================
-# 2. 读取数据
-# =============================
 
 control = pd.read_excel(control_path)
 resilience = pd.read_excel(resilience_path)
 policy = pd.read_excel(policy_path)
 
-# =============================
-# 3. 合并数据
-# =============================
 
 resilience.rename(columns={"City": "城市", "Year": "年份"}, inplace=True)
 
 df = control.merge(resilience, on=["城市", "年份"]) \
     .merge(policy, on=["城市", "年份"])
 
-df.rename(columns={"Treat×Time": "Treat_Time"}, inplace=True)
+df.rename(columns={"DID": "Treat_Time"}, inplace=True)
 
-# =============================
-# 4. 变量设定
-# =============================
 
 y = "Eco_Resilience"
 
-did_var = "Treat_Time"
+did_var = "DID"
 
 controls = [
     "人口规模",
@@ -47,10 +35,6 @@ controls = [
 
 all_vars = [y, did_var] + controls
 
-# =============================
-# 变量中文解释
-# =============================
-
 var_label = {
     "Eco_Resilience": "生态韧性",
     "Treat_Time": "政策变量",
@@ -60,17 +44,8 @@ var_label = {
     "城镇化率": "非农业人口/户籍人口",
     "医疗卫生水平": "每百人医院、卫生院床位"
 }
-# =========================================================
-# 四、平行趋势检验（事件研究法）
-# =========================================================
-# =========================================================
-# 平行趋势检验（修正版）
-# =========================================================
 
 print("\n===== 平行趋势检验 =====\n")
-# =========================================================
-# 显著性星号函数（必须加）
-# =========================================================
 def star(p):
     if p < 0.01:
         return "***"
@@ -80,23 +55,23 @@ def star(p):
         return "*"
     else:
         return ""
-# 1. 政策年份
+
 df["treat_dummy"] = df["Treat_Time"]
 
 policy_year = df[df["treat_dummy"] == 1].groupby("城市")["年份"].min()
 
 df["policy_year"] = df["城市"].map(policy_year)
 
-# 2. 相对时间
+
 df["event_time"] = df["年份"] - df["policy_year"]
 
-# 3. 窗口
+
 min_k = -5
-max_k = 4
+max_k = 3
 
 df_event = df.copy()
 
-# 4. 生成事件变量（关键修改）
+
 event_vars = []
 
 for k in range(min_k, max_k + 1):
@@ -105,30 +80,26 @@ for k in range(min_k, max_k + 1):
         continue
 
     if k < 0:
-        var_name = f"event_m{abs(k)}"   # event_m5
+        var_name = f"event_m{abs(k)}"  
     else:
-        var_name = f"event_{k}"        # event_0, event_1
+        var_name = f"event_{k}"       
 
     df_event[var_name] = ((df_event["event_time"] == k) * 1).fillna(0)
 
     event_vars.append(var_name)
 
-# 5. 回归公式
+
 formula_event = (
     f"{y} ~ " +
     " + ".join(event_vars + controls) +
     " + C(城市) + C(年份)"
 )
 
-# 6. 回归
 event_model = smf.ols(formula_event, data=df_event).fit(
     cov_type="cluster",
     cov_kwds={"groups": df_event["城市"]}
 )
 
-# =========================================================
-# 7. 输出结果
-# =========================================================
 
 event_result = []
 
@@ -156,11 +127,8 @@ event_df = pd.DataFrame(event_result, columns=["相对时间", "系数", "标准
 
 print(event_df)
 import matplotlib.pyplot as plt
-plt.rcParams['font.sans-serif'] = ['SimHei']   # 黑体（最常用）
-plt.rcParams['axes.unicode_minus'] = False     # 解决负号显示问题
-# =============================
-# 1. 提取数据
-# =============================
+plt.rcParams['font.sans-serif'] = ['SimHei']   
+plt.rcParams['axes.unicode_minus'] = False    
 
 event_df["coef"] = event_df["系数"].str.replace(r"\*+", "", regex=True).astype(float)
 event_df["se"] = event_df["标准误"].str.replace(r"[()]", "", regex=True).astype(float)
@@ -169,27 +137,18 @@ x = event_df["相对时间"]
 y = event_df["coef"]
 se = event_df["se"]
 
-# 95%置信区间
 ci_upper = y + 1.96 * se
 ci_lower = y - 1.96 * se
 
-# =============================
-# 2. 作图
-# =============================
 
 plt.figure()
 
-# 系数点 + 置信区间
 plt.errorbar(x, y, yerr=1.96*se, fmt='o', capsize=4)
 
-# 连接线
 plt.plot(x, y)
 
-# 基准线
-plt.axhline(0)   # 横轴
-plt.axvline(-1)  # 政策前基准期
-
-# 标签
+plt.axhline(0)  
+plt.axvline(-1)  
 plt.xlabel("政策时点")
 plt.ylabel("政策动态效应")
 plt.title("平行趋势检验")
